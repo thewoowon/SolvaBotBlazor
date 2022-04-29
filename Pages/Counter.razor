@@ -1,0 +1,22 @@
+﻿@page "/counter"
+
+<h1>Counter</h1>
+
+<p>Current count: @currentCount1</p>
+<p>Current count: @currentCount2</p>
+<p>Current count: @currentCount3</p>
+
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+@code {
+    private int currentCount1 = 0;
+    private int currentCount2 = 0;
+    private int currentCount3 = 0;
+
+    private void IncrementCount()
+    {
+        currentCount1+=1;
+        currentCount2+=2;
+        currentCount3+=3;
+    }
+}
