@@ -1,0 +1,178 @@
+﻿@page "/detail"
+
+@using SolvaBot.Data
+@using SolvaBot.Models
+@using Microsoft.AspNetCore.WebUtilities;
+@inject ParameterFinder finder
+@inject NavigationManager navigationManager
+@inject IJSRuntime JsRuntime
+
+
+<div class="detail-main">
+	<div class="detail-main-left">
+	    <div class="detail-main-button">
+	        <div class="detail-main-button-wrap">
+                <div class="detail-main-button-margin">
+			        <button @onclick="AddRow" type="button" class="btn btn-primary">행추가</button> 
+		        </div>
+            </div>
+        </div>
+        <div class="detail-main-table">
+            <div class="detail-main-table-wrap">
+		        <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">No</th>
+                            <th scope="col">Title</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Button</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @for(int i = 0; i < detail.Length; i++)
+                    {
+                        var j = i;
+                        <tr>
+                            <th scope="row">@(i+1)</th>
+                            <td>@detail[i].Title</td>
+                            <td>@detail[i].Wdate.ToString().Substring(0,10)</td>
+                            <td class="detail-main-table-td-button">
+                                <div class="detail-main-button-margin">
+			                        <button @onclick="()=>SendRow(j)" type="button" class="btn btn-primary">선택</button>
+		                        </div>
+						        <div class="detail-main-button-margin">
+			                        <button @onclick="()=>DeleteRow(detail[j])" type="button" class="btn btn-primary">삭제</button>
+		                        </div>
+					        </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+	        </div>	
+        </div>
+    </div>
+    <div  class="detail-main-right">
+	    <form class="detail-main-right-form"> 
+          <div class="mb-3">
+            <label for="formNo" class="form-label">No</label>
+            <input type="text" class="form-control" id="formNo" readonly="readonly" value="@(nowIndex+1)">
+          </div>
+          <div class="mb-3">
+            <label for="formTitle" class="form-label">Title</label>
+            <input type="text" class="form-control" id="formTitle" value="@detailForm.Title" @oninput="(e) => {setTitleValue(e.Value.ToString());}">
+            <div class="form-text">여기에 제목을 입력하세요.</div>
+          </div>
+          <div class="mb-3">
+            <label for="formSubTitle" class="form-label">SubTitle</label>
+            <input type="text" class="form-control" id="formSubTitle" value="@detailForm.SubTitle" @oninput="(e) => {setSubTitleValue(e.Value.ToString());}">
+            <div class="form-text">여기에 부제목을 입력하세요.</div>
+          </div>
+          <div class="mb-3">
+            <label for="formTitle" class="form-label">Content</label>
+            <textarea class="form-control" id="formContent" value="@detailForm.Content" rows="15" @oninput="(e) => {setContentValue(e.Value.ToString());}"></textarea>
+            <div class="form-text">여기에 내용을 입력하세요.</div>
+          </div>
+          <div class="detail-main-form-button">
+			  <div class="detail-main-button-margin">
+                <button @onclick="ClearRow" type="button" class="btn btn-primary">Clear</button>
+              </div>
+              <div class="detail-main-button-margin">
+		        <button @onclick="EditRow" type="button" class="btn btn-primary">수정</button>
+	          </div>
+		  </div>
+        </form>
+    </div>
+</div>
+
+
+@code {
+	private TblComMenuDetail[] detail;
+    private TblComMenuDetail detailForm;
+    private int? nowIndex;
+    string titleValue = string.Empty;
+    string subTitleValue = string.Empty;
+    string contentValue = string.Empty;
+    string menuCode = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var uri = navigationManager.ToAbsoluteUri(navigationManager.Uri);
+
+        if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("menuCode", out var _queryCompanyCode))
+        {
+            menuCode = _queryCompanyCode;
+            detail = await finder.GetComMenuDetail(menuCode);
+        }
+        else
+        {
+            menuCode = string.Empty; // 오류 페이지 라우팅
+            detail = await finder.GetComMenuDetail();
+        }
+        detailForm = new TblComMenuDetail();
+    }
+
+    protected void SendRow(int i){
+        nowIndex = i;
+        detailForm = detail[i];
+        titleValue = detail[i].Title;
+        subTitleValue = detail[i].SubTitle;
+        contentValue = detail[i].Content;
+    }
+
+    protected async void AddRow(){
+        if(!string.IsNullOrEmpty(menuCode))
+        {
+            finder.AddComDetail(menuCode);
+            await OnInitializedAsync();
+        }
+        else{
+            await JsRuntime.InvokeVoidAsync("alert", "메뉴에서 넘어온 것이 아니라면 행을 추가 할 수 없습니다.");
+        }
+    }
+    protected async void DeleteRow(TblComMenuDetail paramDetail){
+        finder.DeleteComDetail(paramDetail);
+        await OnInitializedAsync();
+    }
+    protected async void EditRow(){
+
+        if(string.IsNullOrEmpty(detailForm.Code))
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "메뉴가 선택되지 않았습니다.");
+        }
+        else
+        {
+            TblComMenuDetail paramDetail = new TblComMenuDetail();
+            paramDetail.Code = detailForm.Code;   
+            paramDetail.Title = titleValue;
+            paramDetail.SubTitle = subTitleValue;
+            paramDetail.Content = contentValue;
+            paramDetail.Wdate = detailForm.Wdate;   
+            paramDetail.CompanyCode = detailForm.CompanyCode;   
+            paramDetail.MenuCode = menuCode;
+
+            finder.UpdateComDetail(detailForm,paramDetail);
+            await OnInitializedAsync();
+        }
+    }
+
+    protected void ClearRow(){
+        detailForm = new TblComMenuDetail();
+        nowIndex = null;
+        titleValue = string.Empty;
+        subTitleValue = string.Empty;
+        contentValue = string.Empty;
+    }
+
+     private void setTitleValue(string value)
+    {
+        titleValue = value;
+    }
+    private void setSubTitleValue(string value)
+    {
+        subTitleValue = value;
+    }
+    private void setContentValue(string value)
+    {
+        contentValue = value;
+    }
+}

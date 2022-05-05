@@ -1,9 +1,170 @@
 ﻿@page "/"
+@using SolvaBot.Data
+@using SolvaBot.Models
+@inject ParameterFinder finder
+@inject NavigationManager navigationManager
 
-<h1>@companyName</h1>
+<h1>@finder.GetCompanyName()관리자님 반갑습니다. 솔바봇의 메뉴를 설정하세요.</h1>
 
+<div class="manager-main">
+	<div class="manager-main-category">
+        <div class="manager-main-type-name-wrap">
+			<div class="manager-main-type-name">카테고리</div>
+		</div>
+	    <table class="table table-striped">
+          <thead>
+            <tr>
+              <th scope="col">No</th>
+              <th scope="col">Title</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for(int i = 0; i < category.Length; i++)
+            {
+                var j = i;
+                <tr>
+                  <th scope="row">@(i+1)</th>
+                  <td><a @onclick="()=>UpdateMenuComponent(category[j])">@category[i].Title</a></td>
+                </tr>
+            }
+          </tbody>
+        </table>
+    </div>
+    <div class="manager-main-void"></div>
+    <div class="manager-main-menu">
+        <div class="manager-main-type-name-wrap">
+			<div class="manager-main-type-name">중간 메뉴</div>
+		</div>
+	    <table class="table  table-striped">
+          <thead>
+            <tr>
+              <th scope="col">No</th>
+              <th scope="col">Title</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for(int i = 0; i < menu.Length; i++)
+            {
+                var j = i;
+                <tr>
+                  <th scope="row">@(i+1)</th>
+                  <td><a @onclick="()=>UpdateDetailComponent(menu[j])">@menu[i].Title</a></td>
+                </tr>
+            }
+          </tbody>
+        </table>
+    </div>
+    <div class="manager-main-void"></div>
+
+    <div class="manager-main-detail">
+        <div class="manager-main-type-name-wrap">
+			<div class="manager-main-type-name">상세 내용</div>
+		</div>
+
+        @if(showDetailCard && detail != null)
+        {
+        
+	        <div class="manager-main-detail-card">
+                <div class="manager-main-detail-card-wrap">
+					<div class="manager-main-detail-card-img">
+			            <img alt="상세 이미지" src="Asset/solvaBot_Sample.jpg" width="256" height="144"/>
+		            </div>
+                    <div class="manager-main-detail-card-title">
+					    @detail[0].Title
+				    </div>
+                    <div class="manager-main-detail-card-content">
+					    @detail[0].Content
+				    </div>
+                    <div class="manager-main-detail-card-file">
+					    #File_Name
+				    </div>
+				</div>
+	        </div>
+       
+        }
+        else if(!showDetailCard && detail != null){
+        
+	            <table class="table  table-striped">
+                  <thead>
+                    <tr>
+                      <th scope="col">No</th>
+                      <th scope="col">Title</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for(int i = 0; i < detail.Length; i++)
+                    {
+                        <tr>
+                          <th scope="row">@(i+1)</th>
+                          <td>@detail[i].Title</td>
+                        </tr>
+                    }
+                  </tbody>
+                </table>
+        
+        }
+        else{
+            <div></div>
+        }
+    </div>
+</div>
 
 
 @code{
-	private string companyName = string.Empty; 
+	public string CompanyCode = String.Empty;
+    private TblComCategory[] category;
+    private TblComMenu[] menu;
+    private TblComMenuDetail[] detail;
+    private bool showDetailCard =false;
+    
+
+    protected override void OnInitialized()
+    {
+        CompanyCode = finder.SetCompanyCode(navigationManager);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        category = await finder.GetComCategories();
+        menu = await finder.GetComMenu();
+        detail = await finder.GetComMenuDetail();
+    }
+
+    private void NavigateToCategoryComponent()
+    {
+        navigationManager.NavigateTo("category");
+    }
+    private void NavigateToMenuComponent()
+    {
+        navigationManager.NavigateTo("menu");
+    }
+    private void NavigateToDetailComponent()
+    {
+        navigationManager.NavigateTo("detail");
+    }
+
+    private async void UpdateMenuComponent(TblComCategory category)
+    {
+        if (!showDetailCard)
+            showDetailCard = true;
+
+        detail = null;
+
+        await GetMenuComponent(category.Code);
+    }
+    private async void UpdateDetailComponent(TblComMenu menu)
+    {
+        if (!showDetailCard)
+            showDetailCard = true;
+
+        await GetDetailComponent(menu.Code);
+    }
+    protected async Task GetMenuComponent(string categoryCode)
+    {
+        menu = await finder.GetComMenu(categoryCode);
+    }
+    protected async Task GetDetailComponent(string menuCode)
+    {
+        detail = await finder.GetComMenuDetail(menuCode);
+    }
 }
